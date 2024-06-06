@@ -1,0 +1,51 @@
+name: Create Branch on New Tag
+
+on:
+    push:
+        tags:
+            - 'v*.*.*'  # This triggers the workflow on tags following the pattern vX.X.X
+
+jobs:
+    create_branch:
+        runs-on: ubuntu-latest
+
+        steps:
+            -   name: Checkout repository
+                uses: actions/checkout@v2
+
+            -   name: Set up Node.js
+                uses: actions/setup-node@v2
+                with:
+                    node-version: '14'
+
+            -   name: Get the latest tag
+                id: get_tag
+                run: echo "::set-output name=tag::$(git describe --tags --abbrev=0)"
+
+            -   name: Calculate next version branch
+                id: calc_next_branch
+                run: |
+                    TAG=${{ steps.get_tag.outputs.tag }}
+                    MAJOR=$(echo $TAG | cut -d. -f1 | cut -c2-)
+                    MINOR=$(echo $TAG | cut -d. -f2)
+                    PATCH=$(echo $TAG | cut -d. -f3)
+                    
+                    if [ $PATCH -eq 0 ]; then
+                      NEXT_BRANCH="b-${MAJOR}.${MINOR}.x"
+                    else
+                      NEXT_MINOR=$((MINOR + 1))
+                      NEXT_BRANCH="b-${MAJOR}.${NEXT_MINOR}.x"
+                    fi
+                    echo "::set-output name=branch::$NEXT_BRANCH"
+
+            -   name: Create new branch
+                env:
+                    GIT_USER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
+                    GIT_USER_NAME: ${{ secrets.GIT_USER_NAME }}
+                    GH_TOKEN: ${{ secrets.GH_TOKEN }}
+                run: |
+                    BRANCH=${{ steps.calc_next_branch.outputs.branch }}
+                    git config --global user.email "${GIT_USER_EMAIL}"
+                    git config --global user.name "${GIT_USER_NAME}"
+                    git checkout -b $BRANCH
+                    git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} $BRANCH
