@@ -46,9 +46,11 @@ jobs:
       - name: Create new branch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_USER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
+          GITHUB_USER_NAME: ${{ secrets.GIT_USER_NAME }}
         run: |
           BRANCH=${{ steps.calc_next_branch.outputs.branch }}
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
+          git config --global user.email GITHUB_USER_EMAIL
+          git config --global user.name GITHUB_USER_NAME
           git checkout -b $BRANCH
           git push --verbose https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} $BRANCH
