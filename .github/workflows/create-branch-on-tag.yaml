@@ -1,49 +1,26 @@
-name: Create Branch on New Tag
-
 on:
     push:
+        # Sequence of patterns matched against refs/tags
         tags:
-            - 'v*.*.*'  # Triggers on tags like v1.0.0
+            - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+name: Create Branch
 
 jobs:
-    create_branch:
+    build:
+        permissions: # Read more at : https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs
+            contents: write
+        name: Create Branch
         runs-on: ubuntu-latest
-
         steps:
-            -   name: Checkout repository
-                uses: actions/checkout@v2
-
-            -   name: Set up Node.js
-                uses: actions/setup-node@v2
-                with:
-                    node-version: '14'
-
-            -   name: Get the latest tag
-                id: get_tag
-                run: echo "::set-output name=tag::$(git describe --tags --abbrev=0)"
-
-            -   name: Calculate next version branch
-                id: calc_next_branch
-                run: |
-                    TAG=${{ steps.get_tag.outputs.tag }}
-                    MAJOR=$(echo $TAG | cut -d. -f1 | cut -c2-)
-                    MINOR=$(echo $TAG | cut -d. -f2)
-                    PATCH=$(echo $TAG | cut -d. -f3)
-                    
-                    if [ $PATCH -eq 0 ]; then
-                      NEXT_BRANCH="b-${MAJOR}.${MINOR}.x"
-                    else
-                      NEXT_MINOR=$((MINOR + 1))
-                      NEXT_BRANCH="b-${MAJOR}.${NEXT_MINOR}.x"
-                    fi
-                    echo "::set-output name=branch::$NEXT_BRANCH"
-
-            -   name: Create new branch
+            -   name: Checkout code
+                uses: actions/checkout@v4.1.4
+            -   name: Create Branch
+                id: create_branch
+                uses: lablnet/create-branch-from-tag@v1
                 env:
-                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                run: |
-                    BRANCH=${{ steps.calc_next_branch.outputs.branch }}
-                    git config --global user.email "github-actions[bot]@users.noreply.github.com"
-                    git config --global user.name "github-actions[bot]"
-                    git checkout -b $BRANCH
-                    git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} $BRANCH
+                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+                with:
+                    tag_name: ${{ github.ref }}
+                    owner: ${{ github.repository_owner }} # https://docs.github.com/en/actions/learn-github-actions/contexts#example-contents-of-the-github-context
+                    repo: ${{ github.event.repository.name }} # https://www.reddit.com/r/github/comments/tjkj6f/get_repo_name_on_github_actions_without_owner/
