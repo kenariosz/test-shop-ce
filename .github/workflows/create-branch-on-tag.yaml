@@ -3,7 +3,7 @@ name: Create Branch on New Tag
 on:
     push:
         tags:
-            - 'v*.*.*'  # This triggers the workflow on tags following the pattern vX.X.X
+            - 'v*.*.*'  # Triggers on tags like v1.0.0
 
 jobs:
     create_branch:
@@ -40,12 +40,10 @@ jobs:
 
             -   name: Create new branch
                 env:
-                    GIT_USER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
-                    GIT_USER_NAME: ${{ secrets.GIT_USER_NAME }}
-                    GH_TOKEN: ${{ secrets.GH_TOKEN }}
+                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 run: |
                     BRANCH=${{ steps.calc_next_branch.outputs.branch }}
-                    git config --global user.email "${GIT_USER_EMAIL}"
-                    git config --global user.name "${GIT_USER_NAME}"
+                    git config --global user.email "github-actions[bot]@users.noreply.github.com"
+                    git config --global user.name "github-actions[bot]"
                     git checkout -b $BRANCH
-                    git push --set-upstream origin $BRANCH
+                    git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} $BRANCH
